@@ -25,13 +25,13 @@ export const MAIN_NAV: NavItem[] = [
 ];
 
 export const MODULE_NAV: NavItem[] = [
-  { label: "Hearings", href: "/dashboard", icon: CalendarClock, soon: true },
-  { label: "Documents", href: "/dashboard", icon: FolderClosed, soon: true },
-  { label: "Dockets", href: "/dashboard", icon: ListChecks, soon: true },
-  { label: "Parties", href: "/dashboard", icon: Users, soon: true },
+  { label: "Hearings", href: "/dashboard/hearings", icon: CalendarClock },
+  { label: "Documents", href: "/dashboard/documents", icon: FolderClosed },
+  { label: "Dockets", href: "/dashboard/dockets", icon: ListChecks },
+  { label: "Parties", href: "/dashboard/parties", icon: Users },
 ];
 
 export const ADMIN_NAV: NavItem[] = [
-  { label: "Verifications", href: "/dashboard", icon: ShieldCheck, soon: true },
-  { label: "Settings", href: "/dashboard", icon: Settings, soon: true },
+  { label: "Verifications", href: "/dashboard/verifications", icon: ShieldCheck },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
