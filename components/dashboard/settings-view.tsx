@@ -16,6 +16,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { COURT_TYPES, NIGERIAN_STATES } from "@/lib/nigeria";
+import { saveProfile } from "@/app/dashboard/settings/actions";
+
+const ROLE_LABELS: Record<string, string> = {
+  CLERK: "Court Clerk",
+  JUDGE: "Judge",
+  ATTORNEY: "Attorney",
+  ADMIN: "Administrator",
+};
+
+export interface SettingsProfile {
+  name: string;
+  email: string;
+  role: string;
+  firm: string | null;
+  state: string | null;
+  barNumber: string | null;
+}
 
 function SettingsCard({
   icon: Icon,
@@ -68,15 +85,18 @@ function ToggleRow({
   );
 }
 
-export function SettingsView() {
+export function SettingsView({ profile }: { profile: SettingsProfile }) {
   const [saving, setSaving] = useState(false);
+  const [name, setName] = useState(profile.name);
+  const [state, setState] = useState(profile.state ?? "");
+  const [firm, setFirm] = useState(profile.firm ?? "");
 
-  function save() {
+  async function save() {
     setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
-      toast.success("Settings saved");
-    }, 800);
+    const res = await saveProfile({ name, firm, state });
+    setSaving(false);
+    if (res.ok) toast.success("Settings saved");
+    else toast.error("Could not save", { description: res.error });
   }
 
   return (
@@ -89,19 +109,24 @@ export function SettingsView() {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="name">Full name</Label>
-            <Input id="name" defaultValue="Funke Adebayo" />
+            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" defaultValue="clerk@court.gov.ng" />
+            <Input id="email" type="email" value={profile.email} disabled />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="phone">Phone</Label>
-            <Input id="phone" defaultValue="+234 801 234 5678" />
+            <Label htmlFor="firm">Firm</Label>
+            <Input
+              id="firm"
+              value={firm}
+              onChange={(e) => setFirm(e.target.value)}
+              placeholder="Registry / firm name"
+            />
           </div>
           <div className="space-y-1.5">
             <Label>Role</Label>
-            <Input value="Court Clerk" disabled />
+            <Input value={ROLE_LABELS[profile.role] ?? profile.role} disabled />
           </div>
         </div>
       </SettingsCard>
@@ -129,9 +154,9 @@ export function SettingsView() {
           </div>
           <div className="space-y-1.5">
             <Label>State</Label>
-            <Select defaultValue="Lagos">
+            <Select value={state} onValueChange={setState}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select state" />
               </SelectTrigger>
               <SelectContent>
                 {NIGERIAN_STATES.map((s) => (

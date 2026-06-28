@@ -5,21 +5,32 @@ import { ChevronLeft, Gavel, Landmark, MapPin } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { CaseActions } from "@/components/dashboard/case-actions";
 import { CaseDetailTabs } from "@/components/dashboard/case-detail-tabs";
-import { getCase } from "@/lib/data";
+import { getCaseById } from "@/lib/queries";
+import { getCurrentUser } from "@/lib/session";
 import { formatDate } from "@/lib/utils";
 
-export function generateMetadata({
+export async function generateMetadata({
   params,
 }: {
   params: { id: string };
-}): Metadata {
-  const c = getCase(params.id);
+}): Promise<Metadata> {
+  const c = await getCaseById(params.id);
   return { title: c ? `${c.caseNumber} — ${c.title}` : "Case not found" };
 }
 
-export default function CaseDetailPage({ params }: { params: { id: string } }) {
-  const c = getCase(params.id);
+export default async function CaseDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const [c, user] = await Promise.all([
+    getCaseById(params.id),
+    getCurrentUser(),
+  ]);
   if (!c) notFound();
+
+  const canEdit = !!user && ["CLERK", "ADMIN"].includes(user.role);
+  const canDocket = !!user && ["CLERK", "ADMIN", "JUDGE"].includes(user.role);
 
   const meta = [
     { icon: Landmark, label: "Court", value: c.courtType },
@@ -53,7 +64,15 @@ export default function CaseDetailPage({ params }: { params: { id: string } }) {
               {c.description}
             </p>
           </div>
-          <CaseActions caseNumber={c.caseNumber} />
+          <CaseActions
+            caseId={c.id}
+            caseNumber={c.caseNumber}
+            status={c.status}
+            title={c.title}
+            description={c.description}
+            canEdit={canEdit}
+            canStatus={canDocket}
+          />
         </div>
 
         <div className="mt-5 grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-2 lg:grid-cols-4">
@@ -72,7 +91,12 @@ export default function CaseDetailPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <CaseDetailTabs caseRecord={c} />
+      <CaseDetailTabs
+        caseRecord={c}
+        canEdit={canEdit}
+        canDocket={canDocket}
+        userName={user?.name ?? "Registry"}
+      />
     </div>
   );
 }

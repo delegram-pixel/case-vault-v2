@@ -1,17 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Mail, ShieldCheck, ShieldX, X } from "lucide-react";
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Check, Loader2, Mail, ShieldCheck, ShieldX, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  VERIFICATIONS,
-  type LawyerVerification,
-  type VerificationStatus,
+import type {
+  LawyerVerification,
+  VerificationStatus,
 } from "@/lib/admin-data";
+import { setVerification } from "@/app/dashboard/verifications/actions";
 import { cn, formatDate, initials } from "@/lib/utils";
 
 const STATUS_STYLES: Record<VerificationStatus, string> = {
@@ -20,23 +21,33 @@ const STATUS_STYLES: Record<VerificationStatus, string> = {
   Rejected: "bg-status-closed-bg text-status-closed",
 };
 
-export function VerificationsView() {
-  const [records, setRecords] = useState<LawyerVerification[]>(VERIFICATIONS);
+export function VerificationsView({
+  records,
+}: {
+  records: LawyerVerification[];
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
 
-  function setStatus(id: string, status: VerificationStatus) {
+  function setStatus(id: string, status: "Verified" | "Rejected") {
     const rec = records.find((r) => r.id === id);
-    setRecords((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status } : r))
-    );
-    if (status === "Verified") {
-      toast.success("Practitioner verified", {
-        description: `${rec?.name} can now file and appear on matters.`,
-      });
-    } else if (status === "Rejected") {
-      toast.error("Application rejected", {
-        description: `${rec?.name} has been notified.`,
-      });
-    }
+    startTransition(async () => {
+      const res = await setVerification(id, status);
+      if (!res.ok) {
+        toast.error("Could not update", { description: res.error });
+        return;
+      }
+      if (status === "Verified") {
+        toast.success("Practitioner verified", {
+          description: `${rec?.name} can now file and appear on matters.`,
+        });
+      } else {
+        toast.error("Application rejected", {
+          description: `${rec?.name} has been notified.`,
+        });
+      }
+      router.refresh();
+    });
   }
 
   const groups: { value: VerificationStatus; label: string }[] = [
@@ -108,11 +119,16 @@ export function VerificationsView() {
                           variant="outline"
                           className="text-status-closed hover:text-status-closed"
                           onClick={() => setStatus(r.id, "Rejected")}
+                          disabled={pending}
                         >
                           <X /> Reject
                         </Button>
-                        <Button size="sm" onClick={() => setStatus(r.id, "Verified")}>
-                          <Check /> Verify
+                        <Button
+                          size="sm"
+                          onClick={() => setStatus(r.id, "Verified")}
+                          disabled={pending}
+                        >
+                          {pending ? <Loader2 className="animate-spin" /> : <Check />} Verify
                         </Button>
                       </div>
                     ) : (

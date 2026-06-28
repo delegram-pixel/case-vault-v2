@@ -2,10 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Logo } from "@/components/logo";
 import { Badge } from "@/components/ui/badge";
 import { MAIN_NAV, MODULE_NAV, ADMIN_NAV, type NavItem } from "@/components/dashboard/nav";
 import { cn } from "@/lib/utils";
+
+const WORKSPACE: Record<string, string> = {
+  CLERK: "Clerk workspace",
+  JUDGE: "Judge's chambers",
+  ATTORNEY: "Attorney workspace",
+  ADMIN: "Administration",
+};
 
 function NavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -60,6 +68,10 @@ function Section({ title, items, onNavigate }: { title: string; items: NavItem[]
 }
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+  const { data: session } = useSession();
+  const role = session?.user?.role;
+  const workspace = role ? WORKSPACE[role] ?? "Workspace" : "Workspace";
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center border-b px-5">
@@ -68,13 +80,17 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
       <div className="flex-1 overflow-y-auto px-3 py-2">
         <Section title="Registry" items={MAIN_NAV} onNavigate={onNavigate} />
         <Section title="Modules" items={MODULE_NAV} onNavigate={onNavigate} />
-        <Section title="Administration" items={ADMIN_NAV} onNavigate={onNavigate} />
+        <Section
+          title="Administration"
+          items={ADMIN_NAV.filter((i) => !i.adminOnly || role === "ADMIN")}
+          onNavigate={onNavigate}
+        />
       </div>
       <div className="border-t p-3">
         <div className="bg-secondary/60 rounded-lg p-3">
-          <p className="text-sm font-medium">Clerk workspace</p>
+          <p className="text-sm font-medium">{workspace}</p>
           <p className="text-muted-foreground text-xs">
-            Ikeja Division · Lagos
+            {session?.user?.email ?? "Case Vault"}
           </p>
         </div>
       </div>

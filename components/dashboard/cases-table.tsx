@@ -28,23 +28,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/status-badge";
-import { CASES } from "@/lib/data";
 import type { CaseRecord, CaseStatus } from "@/lib/types";
 import { cn, formatDate } from "@/lib/utils";
 
 type SortKey = "caseNumber" | "title" | "status" | "filingDate";
 
-const COURT_TYPES = Array.from(new Set(CASES.map((c) => c.courtType)));
-
-export function CasesTable() {
+export function CasesTable({ cases }: { cases: CaseRecord[] }) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<CaseStatus | "all">("all");
   const [court, setCourt] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("filingDate");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
+  const courtTypes = useMemo(
+    () => Array.from(new Set(cases.map((c) => c.courtType))),
+    [cases]
+  );
+
   const rows = useMemo(() => {
-    let data = [...CASES];
+    let data = [...cases];
     const q = query.trim().toLowerCase();
     if (q) {
       data = data.filter(
@@ -68,7 +70,7 @@ export function CasesTable() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return data;
-  }, [query, status, court, sortKey, sortDir]);
+  }, [cases, query, status, court, sortKey, sortDir]);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -113,7 +115,7 @@ export function CasesTable() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All courts</SelectItem>
-              {COURT_TYPES.map((t) => (
+              {courtTypes.map((t) => (
                 <SelectItem key={t} value={t}>
                   {t}
                 </SelectItem>
@@ -152,7 +154,7 @@ export function CasesTable() {
 
       <div className="text-muted-foreground flex items-center justify-between border-t px-4 py-3 text-xs">
         <span>
-          Showing {rows.length} of {CASES.length} cases
+          Showing {rows.length} of {cases.length} cases
           {activeFilters > 0 && ` · ${activeFilters} filter${activeFilters > 1 ? "s" : ""} active`}
         </span>
       </div>

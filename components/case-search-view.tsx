@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   CalendarClock,
@@ -8,6 +8,7 @@ import {
   Gavel,
   Landmark,
   ListChecks,
+  Loader2,
   MapPin,
   Search,
   Users,
@@ -16,7 +17,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/status-badge";
-import { CASES } from "@/lib/data";
+import {
+  searchPublicCases,
+  type PublicCaseResult,
+} from "@/app/(public)/search/actions";
+import type { CaseStatus } from "@/lib/types";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
 export function CaseSearchView() {
@@ -24,23 +29,32 @@ export function CaseSearchView() {
   const initial = params.get("q") ?? "";
   const [query, setQuery] = useState(initial);
   const [submitted, setSubmitted] = useState(initial);
+  const [results, setResults] = useState<PublicCaseResult[]>([]);
+  const [searching, startSearch] = useTransition();
 
-  const results = useMemo(() => {
-    const q = submitted.trim().toLowerCase();
-    if (!q) return [];
-    return CASES.filter(
-      (c) =>
-        c.caseNumber.toLowerCase().includes(q) ||
-        c.title.toLowerCase().includes(q)
-    );
-  }, [submitted]);
+  function runSearch(q: string) {
+    setSubmitted(q);
+    if (!q.trim()) {
+      setResults([]);
+      return;
+    }
+    startSearch(async () => {
+      setResults(await searchPublicCases(q));
+    });
+  }
+
+  // Run once for a query arriving via ?q=
+  useEffect(() => {
+    if (initial.trim()) runSearch(initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div>
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          setSubmitted(query);
+          runSearch(query);
         }}
         className="bg-card flex items-center gap-2 rounded-xl border p-2 shadow-sm"
       >
@@ -51,7 +65,9 @@ export function CaseSearchView() {
           placeholder="Case number or title…"
           className="border-0 bg-transparent shadow-none focus-visible:ring-0"
         />
-        <Button type="submit">Search</Button>
+        <Button type="submit" disabled={searching}>
+          {searching && <Loader2 className="animate-spin" />} Search
+        </Button>
       </form>
 
       {/* Empty initial */}
@@ -65,7 +81,7 @@ export function CaseSearchView() {
               className="text-foreground font-medium underline-offset-4 hover:underline"
               onClick={() => {
                 setQuery("LD/2451/2026");
-                setSubmitted("LD/2451/2026");
+                runSearch("LD/2451/2026");
               }}
             >
               LD/2451/2026
@@ -75,7 +91,7 @@ export function CaseSearchView() {
               className="text-foreground font-medium underline-offset-4 hover:underline"
               onClick={() => {
                 setQuery("ABJ/0912/2026");
-                setSubmitted("ABJ/0912/2026");
+                runSearch("ABJ/0912/2026");
               }}
             >
               ABJ/0912/2026
@@ -85,7 +101,7 @@ export function CaseSearchView() {
       )}
 
       {/* No results */}
-      {submitted.trim() && results.length === 0 && (
+      {submitted.trim() && results.length === 0 && !searching && (
         <div className="mt-10 rounded-xl border border-dashed p-12 text-center">
           <FileSearch className="text-muted-foreground mx-auto size-8" />
           <h3 className="mt-3 font-semibold">No matching case</h3>
@@ -104,8 +120,8 @@ export function CaseSearchView() {
             {submitted}”
           </p>
           {results.map((c) => {
-            const nextHearing = c.hearings.find((h) => h.status === "Scheduled");
-            const latest = c.docket[c.docket.length - 1];
+            const nextHearing = c.nextHearing;
+            const latest = c.latestDocket;
             return (
               <article
                 key={c.id}
@@ -121,7 +137,7 @@ export function CaseSearchView() {
                         {c.title}
                       </h2>
                     </div>
-                    <StatusBadge status={c.status} />
+                    <StatusBadge status={c.status as CaseStatus} />
                   </div>
                   <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
                     {c.description}

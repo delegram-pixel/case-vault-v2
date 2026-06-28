@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   CalendarClock,
   CheckCircle2,
   Gavel,
+  Loader2,
   Mail,
   MessageSquare,
   Plus,
@@ -31,9 +33,80 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ALL_HEARINGS, type HearingWithCase } from "@/lib/aggregates";
-import { CASES } from "@/lib/data";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { HearingWithCase } from "@/lib/aggregates";
+import {
+  scheduleHearing,
+  updateHearingStatus,
+} from "@/app/dashboard/hearings/actions";
+import { HEARING_STATUSES } from "@/lib/validations";
 import { cn, formatDateTime } from "@/lib/utils";
+
+type CaseOption = { id: string; caseNumber: string; title: string };
+
+function HearingStatusControl({
+  hearingId,
+  status,
+  canManage,
+}: {
+  hearingId: string;
+  status: string;
+  canManage: boolean;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+
+  const badge = (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
+        STATUS_STYLES[status]
+      )}
+    >
+      {pending ? <Loader2 className="size-3 animate-spin" /> : null}
+      {status}
+    </span>
+  );
+
+  if (!canManage) return badge;
+
+  function change(next: string) {
+    if (next === status) return;
+    start(async () => {
+      const res = await updateHearingStatus(hearingId, next);
+      if (res.ok) {
+        toast.success(`Hearing marked ${next}`);
+        router.refresh();
+      } else {
+        toast.error("Could not update", { description: res.error });
+      }
+    });
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger disabled={pending} className="outline-none">
+        {badge}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>Set status</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {HEARING_STATUSES.map((s) => (
+          <DropdownMenuItem key={s} onClick={() => change(s)}>
+            {s}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 const ROOMS = ["Court 1", "Court 2", "Court 3", "Court 5", "Hall A"];
 const EVENT_TYPES = [
@@ -61,9 +134,18 @@ function dayKey(iso: string) {
   });
 }
 
-export function HearingScheduler() {
+export function HearingScheduler({
+  hearings,
+  caseOptions,
+  canManage = false,
+}: {
+  hearings: HearingWithCase[];
+  caseOptions: CaseOption[];
+  canManage?: boolean;
+}) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [hearings, setHearings] = useState<HearingWithCase[]>(ALL_HEARINGS);
+  const [submitting, startSubmit] = useTransition();
 
   // form state
   const [caseId, setCaseId] = useState("");
@@ -119,25 +201,21 @@ export function HearingScheduler() {
       });
       return;
     }
-    const c = CASES.find((x) => x.id === caseId)!;
-    const newHearing: HearingWithCase = {
-      id: `new-${Date.now()}`,
-      eventType,
-      dateTime: `${date}T${time}:00`,
-      roomNumber: room,
-      judge,
-      status: "Scheduled",
-      caseId: c.id,
-      caseNumber: c.caseNumber,
-      caseTitle: c.title,
-      courtState: c.courtState,
-    };
-    setHearings((prev) => [...prev, newHearing]);
-    toast.success("Hearing scheduled", {
-      description: `${eventType} for ${c.caseNumber} · reminders queued.`,
+    startSubmit(async () => {
+      const res = await scheduleHearing({ caseId, eventType, date, time, room, judge });
+      if (!res.ok) {
+        toast.error(res.conflict ? "Scheduling conflict" : "Could not schedule", {
+          description: res.error,
+        });
+        return;
+      }
+      toast.success("Hearing scheduled", {
+        description: `${eventType} · reminders queued.`,
+      });
+      setOpen(false);
+      reset();
+      router.refresh();
     });
-    setOpen(false);
-    reset();
   }
 
   return (
@@ -166,7 +244,7 @@ export function HearingScheduler() {
                     <SelectValue placeholder="Select a case" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CASES.map((c) => (
+                    {caseOptions.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.caseNumber} — {c.title}
                       </SelectItem>
@@ -267,7 +345,8 @@ export function HearingScheduler() {
               <Button variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={schedule} disabled={!!conflict}>
+              <Button onClick={schedule} disabled={!!conflict || submitting}>
+                {submitting && <Loader2 className="animate-spin" />}
                 Schedule
               </Button>
             </DialogFooter>
@@ -310,14 +389,11 @@ export function HearingScheduler() {
                     </Link>
                     <p className="text-muted-foreground text-xs">{h.judge}</p>
                   </div>
-                  <span
-                    className={cn(
-                      "rounded-full px-2.5 py-0.5 text-xs font-medium",
-                      STATUS_STYLES[h.status]
-                    )}
-                  >
-                    {h.status}
-                  </span>
+                  <HearingStatusControl
+                    hearingId={h.id}
+                    status={h.status}
+                    canManage={canManage}
+                  />
                 </div>
               ))}
             </div>

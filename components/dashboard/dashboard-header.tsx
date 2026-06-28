@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { signOut, useSession } from "next-auth/react";
 import { Bell, LogOut, Menu, Search, Settings, User } from "lucide-react";
 import { toast } from "sonner";
+import { initials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -27,9 +28,21 @@ import {
 } from "@/components/ui/sheet";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 
+const ROLE_LABELS: Record<string, string> = {
+  CLERK: "Court Clerk",
+  JUDGE: "Judge",
+  ATTORNEY: "Attorney",
+  ADMIN: "Administrator",
+};
+
 export function DashboardHeader() {
-  const router = useRouter();
+  const { data: session } = useSession();
   const [open, setOpen] = useState(false);
+
+  const name = session?.user?.name ?? "Account";
+  const roleLabel = session?.user?.role
+    ? ROLE_LABELS[session.user.role] ?? session.user.role
+    : "";
 
   return (
     <header className="bg-background/80 sticky top-0 z-30 flex h-16 items-center gap-3 border-b px-4 backdrop-blur-md sm:px-6">
@@ -64,14 +77,14 @@ export function DashboardHeader() {
           <DropdownMenuTrigger asChild>
             <button className="hover:bg-secondary ml-1 flex items-center gap-2 rounded-full p-0.5 pr-2 transition-colors">
               <Avatar className="size-8">
-                <AvatarFallback>FA</AvatarFallback>
+                <AvatarFallback>{initials(name)}</AvatarFallback>
               </Avatar>
               <span className="hidden text-left sm:block">
                 <span className="block text-sm leading-tight font-medium">
-                  Funke Adebayo
+                  {name}
                 </span>
                 <span className="text-muted-foreground block text-xs leading-tight">
-                  Court Clerk
+                  {roleLabel}
                 </span>
               </span>
             </button>
@@ -90,7 +103,7 @@ export function DashboardHeader() {
               variant="destructive"
               onClick={() => {
                 toast.success("Signed out");
-                router.push("/");
+                signOut({ callbackUrl: "/" });
               }}
             >
               <LogOut /> Sign out

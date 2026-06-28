@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CourtFinder } from "@/components/court-finder";
+import { getCourts } from "@/lib/queries";
 
 export const metadata: Metadata = {
   title: "Find a Court",
@@ -7,7 +8,8 @@ export const metadata: Metadata = {
     "Find Nigerian state and federal courts by type and state. View address, phone, hours and directions.",
 };
 
-export default function FindPage() {
+export default async function FindPage() {
+  const courts = await getCourts();
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
       <div className="mb-8 text-center">
@@ -19,7 +21,7 @@ export default function FindPage() {
           or browse branches near you. No account needed.
         </p>
       </div>
-      <CourtFinder />
+      <CourtFinder courts={courts} />
     </div>
   );
 }

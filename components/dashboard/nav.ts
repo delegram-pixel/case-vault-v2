@@ -16,6 +16,7 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
   soon?: boolean;
+  adminOnly?: boolean;
 }
 
 export const MAIN_NAV: NavItem[] = [
@@ -32,6 +33,7 @@ export const MODULE_NAV: NavItem[] = [
 ];
 
 export const ADMIN_NAV: NavItem[] = [
-  { label: "Verifications", href: "/dashboard/verifications", icon: ShieldCheck },
+  { label: "Verifications", href: "/dashboard/verifications", icon: ShieldCheck, adminOnly: true },
+  { label: "Users", href: "/dashboard/users", icon: Users, adminOnly: true },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];

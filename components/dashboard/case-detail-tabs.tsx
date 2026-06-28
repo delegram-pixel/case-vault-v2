@@ -27,6 +27,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AddAttorneyDialog,
+  AddDocketDialog,
+  AddPartyDialog,
+  RemoveItemButton,
+} from "@/components/dashboard/case-detail-editors";
+import { DocumentUploader } from "@/components/dashboard/document-uploader";
+import { DeleteDocumentButton } from "@/components/dashboard/case-detail-editors";
 import type { CaseRecord } from "@/lib/types";
 import { cn, formatDate, formatDateTime, initials } from "@/lib/utils";
 
@@ -51,7 +59,17 @@ function EmptyState({ label }: { label: string }) {
   );
 }
 
-export function CaseDetailTabs({ caseRecord: c }: { caseRecord: CaseRecord }) {
+export function CaseDetailTabs({
+  caseRecord: c,
+  canEdit = false,
+  canDocket = false,
+  userName = "Registry",
+}: {
+  caseRecord: CaseRecord;
+  canEdit?: boolean;
+  canDocket?: boolean;
+  userName?: string;
+}) {
   const tabs = [
     { value: "parties", label: "Parties", icon: Users, count: c.parties.length },
     { value: "attorneys", label: "Attorneys", icon: UserCheck, count: c.attorneys.length },
@@ -76,7 +94,12 @@ export function CaseDetailTabs({ caseRecord: c }: { caseRecord: CaseRecord }) {
       </div>
 
       {/* Parties */}
-      <TabsContent value="parties" className="mt-4">
+      <TabsContent value="parties" className="mt-4 space-y-3">
+        {canEdit && (
+          <div className="flex justify-end">
+            <AddPartyDialog caseId={c.id} />
+          </div>
+        )}
         <div className="bg-card rounded-xl border shadow-sm">
           {c.parties.length ? (
             <ul className="divide-y">
@@ -92,6 +115,9 @@ export function CaseDetailTabs({ caseRecord: c }: { caseRecord: CaseRecord }) {
                   <Badge variant="secondary" className="rounded-full">
                     {p.role}
                   </Badge>
+                  {canEdit && (
+                    <RemoveItemButton caseId={c.id} id={p.id} kind="party" />
+                  )}
                 </li>
               ))}
             </ul>
@@ -104,7 +130,12 @@ export function CaseDetailTabs({ caseRecord: c }: { caseRecord: CaseRecord }) {
       </TabsContent>
 
       {/* Attorneys */}
-      <TabsContent value="attorneys" className="mt-4">
+      <TabsContent value="attorneys" className="mt-4 space-y-3">
+        {canEdit && (
+          <div className="flex justify-end">
+            <AddAttorneyDialog caseId={c.id} />
+          </div>
+        )}
         <div className="bg-card rounded-xl border shadow-sm">
           {c.attorneys.length ? (
             <ul className="divide-y">
@@ -119,12 +150,16 @@ export function CaseDetailTabs({ caseRecord: c }: { caseRecord: CaseRecord }) {
                       <UserCheck className="text-status-open size-3.5" />
                     </p>
                     <p className="text-muted-foreground text-xs">
-                      {a.firm} · {a.barNumber}
+                      {a.firm}
+                      {a.barNumber ? ` · ${a.barNumber}` : ""}
                     </p>
                   </div>
                   <Badge variant="outline" className="rounded-full">
                     for {a.representing}
                   </Badge>
+                  {canEdit && (
+                    <RemoveItemButton caseId={c.id} id={a.id} kind="attorney" />
+                  )}
                 </li>
               ))}
             </ul>
@@ -137,7 +172,12 @@ export function CaseDetailTabs({ caseRecord: c }: { caseRecord: CaseRecord }) {
       </TabsContent>
 
       {/* Docket */}
-      <TabsContent value="docket" className="mt-4">
+      <TabsContent value="docket" className="mt-4 space-y-3">
+        {canDocket && (
+          <div className="flex justify-end">
+            <AddDocketDialog caseId={c.id} filingParty={userName} />
+          </div>
+        )}
         <div className="bg-card rounded-xl border p-5 shadow-sm sm:p-6">
           {c.docket.length ? (
             <ol className="relative space-y-6">
@@ -242,34 +282,55 @@ export function CaseDetailTabs({ caseRecord: c }: { caseRecord: CaseRecord }) {
       </TabsContent>
 
       {/* Documents */}
-      <TabsContent value="documents" className="mt-4">
+      <TabsContent value="documents" className="mt-4 space-y-3">
+        {canEdit && <DocumentUploader caseId={c.id} />}
         <div className="bg-card rounded-xl border shadow-sm">
           {c.documents.length ? (
             <ul className="divide-y">
-              {c.documents.map((d) => (
-                <li key={d.id} className="flex items-center gap-3 p-4">
-                  <div className="bg-secondary grid size-10 shrink-0 place-items-center rounded-lg">
-                    <FileText className="size-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{d.name}</p>
-                    <p className="text-muted-foreground text-xs">
-                      {d.type} · {d.size} · {formatDate(d.uploadDate)}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => toast.success(`Downloading ${d.name}`)}
-                    className="text-muted-foreground hover:text-foreground hover:bg-secondary grid size-8 place-items-center rounded-md transition-colors"
-                    aria-label="Download"
-                  >
-                    <Download className="size-4" />
-                  </button>
-                </li>
-              ))}
+              {c.documents.map((d) => {
+                const hasFile = !!d.url && d.url !== "#";
+                return (
+                  <li key={d.id} className="flex items-center gap-3 p-4">
+                    <div className="bg-secondary grid size-10 shrink-0 place-items-center rounded-lg">
+                      <FileText className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{d.name}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {d.type} · {d.size} · {formatDate(d.uploadDate)}
+                      </p>
+                    </div>
+                    {hasFile ? (
+                      <a
+                        href={d.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-muted-foreground hover:text-foreground hover:bg-secondary grid size-8 place-items-center rounded-md transition-colors"
+                        aria-label="Open document"
+                      >
+                        <Download className="size-4" />
+                      </a>
+                    ) : (
+                      <button
+                        onClick={() =>
+                          toast.info("Sample record — no file attached.")
+                        }
+                        className="text-muted-foreground hover:text-foreground hover:bg-secondary grid size-8 place-items-center rounded-md transition-colors"
+                        aria-label="Download"
+                      >
+                        <Download className="size-4" />
+                      </button>
+                    )}
+                    {canEdit && (
+                      <DeleteDocumentButton caseId={c.id} documentId={d.id} />
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <div className="p-4">
-              <EmptyState label="No documents uploaded." />
+              <EmptyState label="No documents uploaded yet." />
             </div>
           )}
         </div>

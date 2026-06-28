@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { signIn } from "next-auth/react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,18 +12,35 @@ import { Label } from "@/components/ui/label";
 
 export function LoginForm() {
   const router = useRouter();
+  const params = useSearchParams();
+  const callbackUrl = params.get("callbackUrl") || "/dashboard";
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
+    const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+    const password = (form.elements.namedItem("password") as HTMLInputElement)
+      .value;
+
     setLoading(true);
-    setTimeout(() => {
-      toast.success("Signed in", {
-        description: "Welcome back to Case Vault.",
+    const res = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+    setLoading(false);
+
+    if (!res || res.error) {
+      toast.error("Sign in failed", {
+        description: "Check your email and password and try again.",
       });
-      router.push("/dashboard");
-    }, 900);
+      return;
+    }
+    toast.success("Signed in", { description: "Welcome back to Case Vault." });
+    router.push(callbackUrl);
+    router.refresh();
   }
 
   return (
@@ -52,7 +70,7 @@ export function LoginForm() {
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
             <Link
-              href="#"
+              href="/forgot"
               className="text-muted-foreground hover:text-foreground text-xs"
             >
               Forgot password?

@@ -14,18 +14,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ALL_DOCUMENTS } from "@/lib/aggregates";
+import type { DocumentWithCase } from "@/lib/aggregates";
 import { formatDate } from "@/lib/utils";
 
-const TYPES = Array.from(new Set(ALL_DOCUMENTS.map((d) => d.type)));
-
-export function DocumentsView() {
+export function DocumentsView({ documents }: { documents: DocumentWithCase[] }) {
   const [query, setQuery] = useState("");
   const [type, setType] = useState("all");
 
+  const types = useMemo(
+    () => Array.from(new Set(documents.map((d) => d.type))),
+    [documents]
+  );
+
   const docs = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return ALL_DOCUMENTS.filter((d) => {
+    return documents.filter((d) => {
       if (type !== "all" && d.type !== type) return false;
       if (!q) return true;
       return (
@@ -34,7 +37,7 @@ export function DocumentsView() {
         d.caseTitle.toLowerCase().includes(q)
       );
     });
-  }, [query, type]);
+  }, [documents, query, type]);
 
   return (
     <div className="space-y-4">
@@ -54,7 +57,7 @@ export function DocumentsView() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All types</SelectItem>
-            {TYPES.map((t) => (
+            {types.map((t) => (
               <SelectItem key={t} value={t}>
                 {t}
               </SelectItem>
@@ -94,12 +97,23 @@ export function DocumentsView() {
                 <span>
                   {d.size} · {formatDate(d.uploadDate)}
                 </span>
-                <button
-                  onClick={() => toast.success(`Downloading ${d.name}`)}
-                  className="hover:text-foreground inline-flex items-center gap-1"
-                >
-                  <Download className="size-3.5" /> Download
-                </button>
+                {d.url && d.url !== "#" ? (
+                  <a
+                    href={d.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-foreground inline-flex items-center gap-1"
+                  >
+                    <Download className="size-3.5" /> Download
+                  </a>
+                ) : (
+                  <button
+                    onClick={() => toast.info("Sample record — no file attached.")}
+                    className="hover:text-foreground inline-flex items-center gap-1"
+                  >
+                    <Download className="size-3.5" /> Download
+                  </button>
+                )}
               </div>
             </div>
           ))}

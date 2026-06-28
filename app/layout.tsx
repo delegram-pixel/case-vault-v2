@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Libre_Baskerville, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { Providers } from "@/app/providers";
 import "./globals.css";
 
 const sans = Inter({
@@ -39,7 +40,7 @@ export default function RootLayout({
       <body
         className={`${sans.variable} ${serif.variable} ${mono.variable} font-sans antialiased`}
       >
-        {children}
+        <Providers>{children}</Providers>
         <Toaster position="top-right" />
       </body>
     </html>

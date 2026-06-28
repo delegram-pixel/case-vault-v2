@@ -12,18 +12,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ALL_DOCKET } from "@/lib/aggregates";
+import type { DocketWithCase } from "@/lib/aggregates";
 import { formatDate } from "@/lib/utils";
 
-const TYPES = Array.from(new Set(ALL_DOCKET.map((d) => d.docketType)));
-
-export function DocketsView() {
+export function DocketsView({ docket }: { docket: DocketWithCase[] }) {
   const [query, setQuery] = useState("");
   const [type, setType] = useState("all");
 
+  const types = useMemo(
+    () => Array.from(new Set(docket.map((d) => d.docketType))),
+    [docket]
+  );
+
   const entries = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return ALL_DOCKET.filter((d) => {
+    return docket.filter((d) => {
       if (type !== "all" && d.docketType !== type) return false;
       if (!q) return true;
       return (
@@ -32,7 +35,7 @@ export function DocketsView() {
         d.filingParty.toLowerCase().includes(q)
       );
     });
-  }, [query, type]);
+  }, [docket, query, type]);
 
   return (
     <div className="space-y-4">
@@ -52,7 +55,7 @@ export function DocketsView() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All entry types</SelectItem>
-            {TYPES.map((t) => (
+            {types.map((t) => (
               <SelectItem key={t} value={t}>
                 {t}
               </SelectItem>

@@ -14,18 +14,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ALL_PARTIES, ALL_ATTORNEYS } from "@/lib/aggregates";
+import type { PartyWithCase, AttorneyWithCase } from "@/lib/aggregates";
 import { initials } from "@/lib/utils";
 
 const ROLES = ["Plaintiff", "Defendant", "Witness", "Other"];
 
-export function PartiesView() {
+export function PartiesView({
+  allParties,
+  allAttorneys,
+}: {
+  allParties: PartyWithCase[];
+  allAttorneys: AttorneyWithCase[];
+}) {
   const [query, setQuery] = useState("");
   const [role, setRole] = useState("all");
 
   const parties = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return ALL_PARTIES.filter((p) => {
+    return allParties.filter((p) => {
       if (role !== "all" && p.role !== role) return false;
       if (!q) return true;
       return (
@@ -33,18 +39,18 @@ export function PartiesView() {
         p.caseNumber.toLowerCase().includes(q)
       );
     });
-  }, [query, role]);
+  }, [allParties, query, role]);
 
   const attorneys = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return ALL_ATTORNEYS;
-    return ALL_ATTORNEYS.filter(
+    if (!q) return allAttorneys;
+    return allAttorneys.filter(
       (a) =>
         a.name.toLowerCase().includes(q) ||
         a.firm.toLowerCase().includes(q) ||
         a.caseNumber.toLowerCase().includes(q)
     );
-  }, [query]);
+  }, [allAttorneys, query]);
 
   return (
     <Tabs defaultValue="parties" className="space-y-4">
@@ -53,13 +59,13 @@ export function PartiesView() {
           <TabsTrigger value="parties">
             <Users className="size-3.5" /> Parties
             <span className="text-muted-foreground ml-0.5 text-xs">
-              {ALL_PARTIES.length}
+              {allParties.length}
             </span>
           </TabsTrigger>
           <TabsTrigger value="attorneys">
             <ShieldCheck className="size-3.5" /> Attorneys
             <span className="text-muted-foreground ml-0.5 text-xs">
-              {ALL_ATTORNEYS.length}
+              {allAttorneys.length}
             </span>
           </TabsTrigger>
         </TabsList>

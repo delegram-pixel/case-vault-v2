@@ -1,0 +1,173 @@
+// Case Vault — Prisma schema
+// Datasource: Neon (serverless Postgres).
+//  - DATABASE_URL = pooled connection (PgBouncer, host has "-pooler"), used at runtime.
+//  - DIRECT_URL   = direct connection (no "-pooler"), used by Prisma Migrate.
+// Role/status fields remain plain strings validated with Zod
+// (see lib/validations.ts); they can be promoted to real Postgres enums later.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("CLERK") // CLERK | JUDGE | ATTORNEY | ADMIN
+  verified     Boolean  @default(false)
+  // For attorneys: Pending | Verified | Rejected. Others default Verified.
+  verificationStatus String @default("Verified")
+  barNumber    String?
+  firm         String?
+  state        String?
+  yearCalled   Int?
+  createdAt    DateTime @default(now())
+
+  casesCreated   Case[]              @relation("CaseCreatedBy")
+  documents      Document[]
+  attorneyOf     Attorney[]
+  resetTokens    PasswordResetToken[]
+}
+
+model Case {
+  id          String   @id @default(cuid())
+  caseNumber  String   @unique
+  title       String
+  description String
+  status      String   @default("Open") // Open | Pending | Closed
+  filingDate  DateTime @default(now())
+  judgeName   String
+  courtType   String
+  courtState  String
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  createdBy User?  @relation("CaseCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  parties   Party[]
+  attorneys Attorney[]
+  documents Document[]
+  docket    DocketEntry[]
+  hearings  Hearing[]
+  service   ServiceRecord[]
+
+  @@index([status])
+  @@index([courtState])
+}
+
+model Party {
+  id     String @id @default(cuid())
+  caseId String
+  name   String
+  role   String // Plaintiff | Defendant | Witness | Other
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+}
+
+model Attorney {
+  id           String  @id @default(cuid())
+  caseId       String
+  userId       String?
+  name         String
+  firm         String?
+  representing String
+  barNumber    String?
+
+  case Case  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Document {
+  id           String   @id @default(cuid())
+  caseId       String
+  name         String
+  type         String
+  url          String
+  key          String?
+  size         String?
+  uploadedById String?
+  uploadDate   DateTime @default(now())
+
+  case       Case  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  uploadedBy User? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+}
+
+model DocketEntry {
+  id          String   @id @default(cuid())
+  caseId      String
+  filingDate  DateTime @default(now())
+  docketType  String
+  docketText  String
+  filingParty String
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+}
+
+model Hearing {
+  id         String   @id @default(cuid())
+  caseId     String
+  eventType  String
+  dateTime   DateTime
+  roomNumber String
+  judgeName  String
+  status     String   @default("Scheduled") // Scheduled | Completed | Adjourned | Cancelled
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([dateTime])
+  @@index([roomNumber, dateTime])
+}
+
+model ServiceRecord {
+  id       String   @id @default(cuid())
+  caseId   String
+  party    String
+  method   String
+  servedOn DateTime
+  status   String // Served | Pending | Failed
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+}
+
+model Court {
+  id      String @id @default(cuid())
+  name    String
+  type    String
+  state   String
+  address String
+  phone   String
+  hours   String
+  rating  Float  @default(0)
+
+  @@index([type, state])
+}
+
+// Stub sink for email/SMS until a real provider is wired in.
+model Notification {
+  id        String   @id @default(cuid())
+  channel   String // email | sms
+  toAddress String
+  subject   String
+  body      String
+  status    String   @default("logged") // logged | sent | failed
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

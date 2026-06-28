@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Building2, FileCheck2, Gavel, Loader2, ShieldCheck } from "lucide-react";
+import { signIn } from "next-auth/react";
+import { Building2, FileCheck2, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +12,11 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
 
+// Judge and Admin accounts are provisioned by an administrator, not self-served.
 const ROLES: { value: Role; label: string; icon: React.ElementType; hint: string }[] =
   [
     { value: "CLERK", label: "Court Clerk", icon: FileCheck2, hint: "File & manage cases" },
-    { value: "JUDGE", label: "Judge", icon: Gavel, hint: "Review & rule" },
     { value: "ATTORNEY", label: "Attorney", icon: Building2, hint: "Track matters" },
-    { value: "ADMIN", label: "Admin", icon: ShieldCheck, hint: "Manage system" },
   ];
 
 export function RegisterForm() {
@@ -24,21 +24,54 @@ export function RegisterForm() {
   const [role, setRole] = useState<Role>("CLERK");
   const [loading, setLoading] = useState(false);
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
+    const get = (name: string) =>
+      (form.elements.namedItem(name) as HTMLInputElement | null)?.value ?? "";
+
+    const payload = {
+      name: get("name"),
+      email: get("email"),
+      password: get("password"),
+      role,
+      barNumber: get("bar") || undefined,
+    };
+
     setLoading(true);
-    setTimeout(() => {
-      if (role === "ATTORNEY") {
+    try {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error("Could not create account", { description: data.error });
+        setLoading(false);
+        return;
+      }
+
+      if (data.pendingVerification) {
         toast.success("Account created", {
-          description: "Your bar credentials are pending verification.",
+          description: "Your bar credentials are pending admin verification.",
         });
       } else {
-        toast.success("Account created", {
-          description: "Welcome to Case Vault.",
-        });
+        toast.success("Account created", { description: "Welcome to Case Vault." });
       }
+
+      await signIn("credentials", {
+        email: payload.email,
+        password: payload.password,
+        redirect: false,
+      });
       router.push("/dashboard");
-    }, 1000);
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+      setLoading(false);
+    }
   }
 
   return (
@@ -77,6 +110,9 @@ export function RegisterForm() {
               );
             })}
           </div>
+          <p className="text-muted-foreground text-xs">
+            Judge and admin accounts are provisioned by an administrator.
+          </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">

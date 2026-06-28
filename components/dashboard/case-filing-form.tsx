@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { createCase } from "@/app/dashboard/cases/actions";
 import { NIGERIAN_STATES, COURT_TYPES } from "@/lib/nigeria";
 
 const partySchema = z.object({
@@ -108,14 +109,19 @@ export function CaseFilingForm() {
   const parties = useFieldArray({ control, name: "parties" });
   const attorneys = useFieldArray({ control, name: "attorneys" });
 
-  function onSubmit(values: FormValues) {
+  async function onSubmit(values: FormValues) {
     setSubmitting(true);
-    setTimeout(() => {
-      toast.success("Case filed", {
-        description: `${values.caseNumber} — ${values.title} added to the registry.`,
-      });
-      router.push("/dashboard");
-    }, 1100);
+    const res = await createCase(values);
+    if (!res.ok) {
+      setSubmitting(false);
+      toast.error("Could not file case", { description: res.error });
+      return;
+    }
+    toast.success("Case filed", {
+      description: `${values.caseNumber} — ${values.title} added to the registry.`,
+    });
+    router.push(`/dashboard/cases/${res.id}`);
+    router.refresh();
   }
 
   function onError() {

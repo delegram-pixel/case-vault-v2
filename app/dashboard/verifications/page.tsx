@@ -2,14 +2,15 @@ import type { Metadata } from "next";
 import { CheckCircle2, Clock, ShieldX, UserCheck } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/dashboard/page-header";
 import { VerificationsView } from "@/components/dashboard/verifications-view";
-import { VERIFICATIONS } from "@/lib/admin-data";
+import { getAttorneys } from "@/lib/queries";
 
 export const metadata: Metadata = { title: "Verifications" };
 
-export default function VerificationsPage() {
-  const pending = VERIFICATIONS.filter((v) => v.status === "Pending").length;
-  const verified = VERIFICATIONS.filter((v) => v.status === "Verified").length;
-  const rejected = VERIFICATIONS.filter((v) => v.status === "Rejected").length;
+export default async function VerificationsPage() {
+  const records = await getAttorneys();
+  const pending = records.filter((v) => v.status === "Pending").length;
+  const verified = records.filter((v) => v.status === "Verified").length;
+  const rejected = records.filter((v) => v.status === "Rejected").length;
 
   return (
     <div className="space-y-6">
@@ -21,9 +22,9 @@ export default function VerificationsPage() {
         <StatCard label="Awaiting review" value={pending} sub="in the queue" icon={Clock} />
         <StatCard label="Verified" value={verified} sub="active practitioners" icon={CheckCircle2} />
         <StatCard label="Rejected" value={rejected} sub="failed checks" icon={ShieldX} />
-        <StatCard label="Total applicants" value={VERIFICATIONS.length} sub="all time" icon={UserCheck} />
+        <StatCard label="Total applicants" value={records.length} sub="all time" icon={UserCheck} />
       </div>
-      <VerificationsView />
+      <VerificationsView records={records} />
     </div>
   );
 }

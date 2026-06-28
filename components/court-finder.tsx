@@ -20,13 +20,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { COURT_TYPES, NIGERIAN_STATES } from "@/lib/nigeria";
-import { COURTS } from "@/lib/data";
-import type { CourtType } from "@/lib/types";
+import type { CourtBranch, CourtType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const STEPS = ["Court type", "State", "Action", "Results"];
 
-export function CourtFinder() {
+export function CourtFinder({ courts }: { courts: CourtBranch[] }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [courtType, setCourtType] = useState<CourtType | null>(null);
@@ -44,9 +43,8 @@ export function CourtFinder() {
   );
 
   const branches = useMemo(
-    () =>
-      COURTS.filter((c) => c.type === courtType && c.state === state),
-    [courtType, state]
+    () => courts.filter((c) => c.type === courtType && c.state === state),
+    [courts, courtType, state]
   );
 
   const canNext =
