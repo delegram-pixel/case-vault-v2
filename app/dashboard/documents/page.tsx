@@ -4,6 +4,8 @@ import { PageHeader, StatCard } from "@/components/dashboard/page-header";
 import { DocumentsView } from "@/components/dashboard/documents-view";
 import { getAllDocuments } from "@/lib/queries";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = { title: "Documents" };
 
 export default async function DocumentsPage() {

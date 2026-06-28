@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { notify } from "@/lib/notify";
+import { logAudit } from "@/lib/audit";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -43,6 +44,11 @@ export async function setVerification(
         : "Please contact the registry to resolve your bar credential check.",
   });
 
+  await logAudit(
+    user,
+    status === "Verified" ? "verification.verify" : "verification.reject",
+    target.email
+  );
   revalidatePath("/dashboard/verifications");
   return { ok: true };
 }

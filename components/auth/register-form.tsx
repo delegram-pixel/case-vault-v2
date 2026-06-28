@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FullScreenLoader } from "@/components/full-screen-loader";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
 
@@ -23,6 +24,7 @@ export function RegisterForm() {
   const router = useRouter();
   const [role, setRole] = useState<Role>("CLERK");
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -66,6 +68,7 @@ export function RegisterForm() {
         password: payload.password,
         redirect: false,
       });
+      setRedirecting(true);
       router.push("/dashboard");
       router.refresh();
     } catch {
@@ -76,6 +79,7 @@ export function RegisterForm() {
 
   return (
     <div>
+      {redirecting && <FullScreenLoader label="Setting up your workspace…" />}
       <div className="space-y-1.5">
         <h1 className="font-serif text-2xl font-bold tracking-tight">
           Create your account

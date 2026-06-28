@@ -9,6 +9,7 @@ import {
   type HearingInput,
 } from "@/lib/validations";
 import { notify } from "@/lib/notify";
+import { logAudit } from "@/lib/audit";
 
 type ScheduleResult =
   | { ok: true; id: string }
@@ -87,6 +88,7 @@ export async function scheduleHearing(
     body: `${eventType} on ${dateTime.toLocaleString("en-NG")} in ${room} before ${judge}.`,
   });
 
+  await logAudit(user, "hearing.schedule", caseRecord.caseNumber, eventType);
   revalidatePath("/dashboard/hearings");
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/cases/${caseId}`);
@@ -122,6 +124,7 @@ export async function updateHearingStatus(
     }),
   ]);
 
+  await logAudit(user, "hearing.status", hearing.eventType, status);
   revalidatePath("/dashboard/hearings");
   revalidatePath(`/dashboard/cases/${hearing.caseId}`);
   return { ok: true, id: hearingId };

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { CourtFinder } from "@/components/court-finder";
 import { getCourts } from "@/lib/queries";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Find a Court",
   description:

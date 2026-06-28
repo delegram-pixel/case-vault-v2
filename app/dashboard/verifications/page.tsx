@@ -4,6 +4,8 @@ import { PageHeader, StatCard } from "@/components/dashboard/page-header";
 import { VerificationsView } from "@/components/dashboard/verifications-view";
 import { getAttorneys } from "@/lib/queries";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = { title: "Verifications" };
 
 export default async function VerificationsPage() {

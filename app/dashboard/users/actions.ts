@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
+import { logAudit } from "@/lib/audit";
 import { createUserSchema, type CreateUserInput } from "@/lib/validations";
 
 type Result = { ok: true; id: string } | { ok: false; error: string };
@@ -39,6 +40,7 @@ export async function createUser(input: CreateUserInput): Promise<Result> {
     },
   });
 
+  await logAudit(admin, "user.create", email, `role: ${parsed.data.role}`);
   revalidatePath("/dashboard/users");
   revalidatePath("/dashboard/verifications");
   return { ok: true, id: created.id };

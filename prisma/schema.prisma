@@ -162,6 +162,21 @@ model Notification {
   createdAt DateTime @default(now())
 }
 
+// System audit log — who did what, across the registry.
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actorName String
+  actorRole String?
+  action    String // e.g. case.create, case.status, verification.verify
+  target    String? // human-readable subject (case number, user email…)
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([action])
+  @@index([createdAt])
+}
+
 model PasswordResetToken {
   id        String   @id @default(cuid())
   userId    String

@@ -2,7 +2,11 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
 // Admin-only sections of the dashboard.
-const ADMIN_PATHS = ["/dashboard/verifications", "/dashboard/users"];
+const ADMIN_PATHS = [
+  "/dashboard/verifications",
+  "/dashboard/users",
+  "/dashboard/audit",
+];
 // Filing requires a verified account (blocks unverified attorneys).
 const VERIFIED_PATHS = ["/dashboard/cases/new"];
 

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
+import { logAudit } from "@/lib/audit";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Enter your full name"),
@@ -33,6 +34,7 @@ export async function saveProfile(
     },
   });
 
+  await logAudit(user, "profile.update", user.email ?? undefined);
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
   return { ok: true };

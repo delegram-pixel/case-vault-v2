@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   ListChecks,
   MapPin,
+  ScrollText,
   Settings,
   ShieldCheck,
   Users,
@@ -35,5 +36,6 @@ export const MODULE_NAV: NavItem[] = [
 export const ADMIN_NAV: NavItem[] = [
   { label: "Verifications", href: "/dashboard/verifications", icon: ShieldCheck, adminOnly: true },
   { label: "Users", href: "/dashboard/users", icon: Users, adminOnly: true },
+  { label: "Audit Log", href: "/dashboard/audit", icon: ScrollText, adminOnly: true },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];

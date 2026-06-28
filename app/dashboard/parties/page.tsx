@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { PartiesView } from "@/components/dashboard/parties-view";
 import { getAllParties, getAllAttorneys } from "@/lib/queries";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = { title: "Parties" };
 
 export default async function PartiesPage() {

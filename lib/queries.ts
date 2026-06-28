@@ -292,6 +292,24 @@ export async function getAllUsers() {
 
 export type AdminUser = Awaited<ReturnType<typeof getAllUsers>>[number];
 
+export async function getAuditLog(limit = 200) {
+  const rows = await prisma.auditLog.findMany({
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    actorName: r.actorName,
+    actorRole: r.actorRole,
+    action: r.action,
+    target: r.target,
+    detail: r.detail,
+    createdAt: r.createdAt.toISOString(),
+  }));
+}
+
+export type AuditEntry = Awaited<ReturnType<typeof getAuditLog>>[number];
+
 export async function getUserProfile(id: string) {
   return prisma.user.findUnique({
     where: { id },

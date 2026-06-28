@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
+import { logAudit } from "@/lib/audit";
 import {
   caseSchema,
   CASE_STATUSES,
@@ -87,6 +88,7 @@ export async function createCase(input: CaseInput): Promise<ActionResult> {
       },
     });
 
+    await logAudit(user, "case.create", data.caseNumber, data.title);
     revalidatePath("/dashboard");
     return { ok: true, id: created.id };
   } catch (e) {
@@ -128,6 +130,12 @@ export async function updateCaseStatus(
     },
   });
 
+  await logAudit(
+    user,
+    "case.status",
+    existing.caseNumber,
+    `${existing.status} → ${status}`
+  );
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/cases/${caseId}`);
   return { ok: true, id: caseId };
@@ -144,8 +152,8 @@ export async function updateCaseDetails(
   caseId: string,
   input: z.infer<typeof caseDetailsSchema>
 ): Promise<ActionResult> {
-  const { error } = await authorize(EDIT_ROLES);
-  if (error) return { ok: false, error };
+  const { user, error } = await authorize(EDIT_ROLES);
+  if (error || !user) return { ok: false, error: error ?? "Unauthorized" };
 
   const parsed = caseDetailsSchema.safeParse(input);
   if (!parsed.success) {
@@ -159,6 +167,7 @@ export async function updateCaseDetails(
     where: { id: caseId },
     data: { title: parsed.data.title, description: parsed.data.description },
   });
+  await logAudit(user, "case.update", existing.caseNumber);
   revalidateCase(caseId);
   return { ok: true, id: caseId };
 }
@@ -271,6 +280,7 @@ export async function deleteDocument(
     }),
   ]);
 
+  await logAudit(user, "document.delete", doc.name);
   revalidateCase(caseId);
   revalidatePath("/dashboard/documents");
   return { ok: true, id: documentId };

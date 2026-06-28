@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FullScreenLoader } from "@/components/full-screen-loader";
 
 export function LoginForm() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export function LoginForm() {
   const callbackUrl = params.get("callbackUrl") || "/dashboard";
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,14 +32,16 @@ export function LoginForm() {
       password,
       redirect: false,
     });
-    setLoading(false);
 
     if (!res || res.error) {
+      setLoading(false);
       toast.error("Sign in failed", {
         description: "Check your email and password and try again.",
       });
       return;
     }
+    // Keep feedback on screen through the navigation + server render.
+    setRedirecting(true);
     toast.success("Signed in", { description: "Welcome back to Case Vault." });
     router.push(callbackUrl);
     router.refresh();
@@ -45,6 +49,7 @@ export function LoginForm() {
 
   return (
     <div>
+      {redirecting && <FullScreenLoader label="Signing you in…" />}
       <div className="space-y-1.5">
         <h1 className="font-serif text-2xl font-bold tracking-tight">
           Welcome back

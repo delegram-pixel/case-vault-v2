@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Libre_Baskerville, JetBrains_Mono } from "next/font/google";
+import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/app/providers";
 import "./globals.css";
@@ -40,6 +41,14 @@ export default function RootLayout({
       <body
         className={`${sans.variable} ${serif.variable} ${mono.variable} font-sans antialiased`}
       >
+        <NextTopLoader
+          color="#0f172a"
+          height={3}
+          shadow="0 0 8px #0f172a55"
+          showSpinner={false}
+          crawlSpeed={180}
+          speed={300}
+        />
         <Providers>{children}</Providers>
         <Toaster position="top-right" />
       </body>
