@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
-import { Bell, LogOut, Menu, Search, Settings, User } from "lucide-react";
+import { LogOut, Menu, Search, Settings, User } from "lucide-react";
 import { toast } from "sonner";
 import { initials } from "@/lib/utils";
+import { NotificationsMenu } from "@/components/dashboard/notifications-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -68,10 +69,7 @@ export function DashboardHeader() {
       </div>
 
       <div className="ml-auto flex items-center gap-1">
-        <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
-          <Bell />
-          <span className="bg-status-closed absolute top-2 right-2 size-1.5 rounded-full" />
-        </Button>
+        <NotificationsMenu />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -92,11 +90,15 @@ export function DashboardHeader() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>My account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User /> Profile
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings">
+                <User /> Profile
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings /> Settings
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings">
+                <Settings /> Settings
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
